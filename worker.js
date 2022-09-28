@@ -1,18 +1,18 @@
 export const api = {
   icon: '🚀',
-  name: 'templates.do',
-  description: 'Cloudflare Worker Template',
-  url: 'https://templates.do/api',
-  type: 'https://apis.do/templates',
+  name: 'jwt.do',
+  description: 'JWT Token Generation & Verification API',
+  url: 'https://jwt.do/api',
+  type: 'https://apis.do/security',
   endpoints: {
-    listCategories: 'https://templates.do/api',
-    getCategory: 'https://templates.do/:type',
+    listCategories: 'https://jwt.do/api',
+    getCategory: 'https://jwt.do/:type',
   },
-  site: 'https://templates.do',
-  login: 'https://templates.do/login',
-  signup: 'https://templates.do/signup',
-  subscribe: 'https://templates.do/subscribe',
-  repo: 'https://github.com/drivly/templates.do',
+  site: 'https://jwt.do',
+  login: 'https://jwt.do/login',
+  signup: 'https://jwt.do/signup',
+  subscribe: 'https://jwt.do/subscribe',
+  repo: 'https://github.com/drivly/jwt.do',
 }
 
 export const gettingStarted = [
