@@ -33,23 +33,18 @@ export default {
     try {
       const url = new URL(req.url)
       const query = Object.fromEntries(url.searchParams)
-      const command = url.pathname
-      if (command === "/generate") return json({ api, token: await generateToken(query) })
-      else if (command === "/verify") {
-        return json({ api, data: await verify(query) })
-      }
+      if (url.pathname === "/generate") return json({ api, token: await generate(query) })
+      else if (url.pathname === "/verify") return json({ api, data: await verify(query) })
       else return json({ api, gettingStarted, examples })
     } catch (error) {
-      const errorResponse = json({ api, error })
-      errorResponse.status = 400
-      return errorResponse
+      return json({ api, error }, 400)
     }
   }
 }
 
-const json = obj => new Response(JSON.stringify(obj, null, 2), { headers: { 'content-type': 'application/json; charset=utf-8' } })
+const json = (obj, status) => new Response(JSON.stringify(obj, null, 2), { headers: { 'content-type': 'application/json; charset=utf-8' }, status })
 
-async function generateToken({ accountId, secret, issuer = undefined, scope = undefined, expirationTTL = undefined }) {
+async function generate({ accountId, secret, issuer = undefined, scope = undefined, expirationTTL = undefined }) {
   let signJwt = new SignJWT({ accountId, scope })
     .setProtectedHeader({ alg: 'HS256' })
     .setJti(nanoid())
