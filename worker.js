@@ -68,8 +68,8 @@ function getAPIKey(req, query) {
  * @throws The JWT could not be generated from the query
  */
 async function generate({ accountId, apikey, secret, issuer, scope, expirationTTL, ...claims }) {
-  if (apikey) {
-    const { profile, profile: { id } } = await env.APIKEYS.fetch(req).then(res => res.json())
+  if (!accountId && apikey) {
+    const { profile, profile: { id } } = await env.APIKEYS.fetch(new Request('https://*/?apikey=' + apikey)).then(res => res.json())
     delete profile.id
     accountId = id
     claims = { ...profile, ...claims }
