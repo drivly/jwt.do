@@ -33,7 +33,7 @@ export default {
     try {
       const url = new URL(req.url)
       const query = Object.fromEntries(url.searchParams)
-      if (url.pathname === "/generate") return json({ api, token: await generate(query) })
+      if (url.pathname === "/generate") return json({ api, token: await generate({ apikey: getAPIKey(req, query), ...query }) })
       else if (url.pathname === "/verify") return json({ api, data: await verify(query) })
       else return json({ api, gettingStarted, examples })
     } catch (error) {
@@ -44,19 +44,37 @@ export default {
 
 const json = (obj, status) => new Response(JSON.stringify(obj, null, 2), { headers: { 'content-type': 'application/json; charset=utf-8' }, status })
 
+function getAPIKey(req, query) {
+  const apikey = query.apikey
+  if (apikey) {
+    delete query.apikey
+    return apikey
+  }
+  const auth = req.headers.get('authorization')?.split(' ')
+  return req.headers.get('x-api-key') || auth?.[1] || auth?.[0]
+}
+
 /**
  * Generates a JWT
  * @param {Object} query 
  * @param {*} query.accountId The unique identifier for the account
- * @param {string} query.secret The secret used to encode and verify the JWT
+ * @param {string|undefined} query.secret The secret used to encode and verify the JWT
+ * @param {string|undefined} query.apikey The API key used to determine the accountId and claims
  * @param {string|undefined} query.issuer The identity of the JWT issuer
  * @param {string|undefined} query.scope Permissions scopes granted by the JWT
  * @param {string|number|undefined} query.expirationTTL The JWT expiration timestamp as a number or a timespan string
+ * @param {Object|undefined} query.claims Additional claims to include in the JWT payload
  * @returns A JWT generated from the query
  * @throws The JWT could not be generated from the query
  */
-async function generate({ accountId, secret, issuer = undefined, scope = undefined, expirationTTL = undefined }) {
-  let signJwt = new SignJWT({ accountId, scope })
+async function generate({ accountId, apikey, secret, issuer, scope, expirationTTL, ...claims }) {
+  if (apikey) {
+    const { profile, profile: { id } } = await env.APIKEYS.fetch(req).then(res => res.json())
+    delete profile.id
+    accountId = id
+    claims = { ...profile, ...claims }
+  }
+  let signJwt = new SignJWT({ accountId, scope, ...claims })
     .setProtectedHeader({ alg: 'HS256' })
     .setJti(nanoid())
     .setIssuedAt()
@@ -69,12 +87,12 @@ async function generate({ accountId, secret, issuer = undefined, scope = undefin
  * Verifies a JWT
  * @param {Object} query
  * @param {string} query.token The JWT to be verified
- * @param {string} query.secret The secret used to encode and verify the JWT
+ * @param {string|undefined} query.secret The secret used to encode and verify the JWT
  * @param {string|undefined} query.issuer The issuer of the JWT
  * @returns The decoded payload and header
  * @throws The JWT is not valid
  */
-async function verify({ token, secret, issuer = undefined }) {
+async function verify({ token, secret, issuer }) {
   const hash = await crypto.subtle.digest('SHA-512', new TextEncoder().encode(secret))
   return await jwtVerify(token, new Uint8Array(hash), { issuer })
 }
