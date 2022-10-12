@@ -44,6 +44,17 @@ export default {
 
 const json = (obj, status) => new Response(JSON.stringify(obj, null, 2), { headers: { 'content-type': 'application/json; charset=utf-8' }, status })
 
+/**
+ * Generates a JWT
+ * @param {Object} query 
+ * @param {*} query.accountId 
+ * @param {string} query.secret 
+ * @param {string|undefined} query.issuer 
+ * @param {string|undefined} query.scope 
+ * @param {string|number} query.expirationTTL The JWT expiration timestamp as a number or a timespan string
+ * @returns A JWT generated from the query
+ * @throws The JWT could not be generated from the query
+ */
 async function generate({ accountId, secret, issuer = undefined, scope = undefined, expirationTTL = undefined }) {
   let signJwt = new SignJWT({ accountId, scope })
     .setProtectedHeader({ alg: 'HS256' })
@@ -54,6 +65,15 @@ async function generate({ accountId, secret, issuer = undefined, scope = undefin
   return await signJwt.sign(new Uint8Array(await crypto.subtle.digest('SHA-512', new TextEncoder().encode(secret))))
 }
 
+/**
+ * Verifies a JWT
+ * @param {Object} query
+ * @param {string} query.token The JWT to be verified
+ * @param {string} query.secret The secret used to verify the JWT
+ * @param {string|undefined} query.issuer The issuer of the JWT
+ * @returns The decoded payload and header
+ * @throws The JWT is not valid
+ */
 async function verify({ token, secret, issuer = undefined }) {
   const hash = await crypto.subtle.digest('SHA-512', new TextEncoder().encode(secret))
   return await jwtVerify(token, new Uint8Array(hash), { issuer })
