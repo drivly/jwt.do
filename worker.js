@@ -1,3 +1,6 @@
+import { jwtVerify, SignJWT } from 'jose'
+import { nanoid } from 'nanoid'
+
 export const api = {
   icon: '🚀',
   name: 'jwt.do',
@@ -5,8 +8,8 @@ export const api = {
   url: 'https://jwt.do/api',
   type: 'https://apis.do/security',
   endpoints: {
-    listCategories: 'https://jwt.do/api',
-    getCategory: 'https://jwt.do/:type',
+    generate: 'https://jwt.do/generate',
+    verify: 'https://jwt.do/verify',
   },
   site: 'https://jwt.do',
   login: 'https://jwt.do/login',
@@ -21,20 +24,42 @@ export const gettingStarted = [
 ]
 
 export const examples = {
-  listItems: 'https://templates.do/worker',
+  generate: 'https://jwt.do/generate?accountId=1234&secret=secret&issuer=jwt.do&scope=user:read&expirationTTL=2h',
+  verify: 'https://jwt.do/verify?token=:token&secret=secret&issuer=jwt.do',
 }
 
 export default {
   fetch: async (req, env) => {
-    const { user, hostname, pathname, rootPath, pathSegments, query } = await env.CTX.fetch(req).then(res => res.json())
-    if (rootPath) return json({ api, gettingStarted, examples, user })
-    
-    // TODO: Implement this
-    const [ resource, id ] = pathSegments
-    const data = { resource, id, hello: user.city }
-    
-    return json({ api, data, user })
+    try {
+      const url = new URL(req.url)
+      const query = Object.fromEntries(url.searchParams)
+      const command = url.pathname
+      if (command === "/generate") return json({ api, token: await generateToken(query) })
+      else if (command === "/verify") {
+        return json({ api, data: await verify(query) })
+      }
+      else return json({ api, gettingStarted, examples })
+    } catch (error) {
+      const errorResponse = json({ api, error })
+      errorResponse.status = 400
+      return errorResponse
+    }
   }
 }
 
-const json = obj => new Response(JSON.stringify(obj, null, 2), { headers: { 'content-type': 'application/json; charset=utf-8' }})
+const json = obj => new Response(JSON.stringify(obj, null, 2), { headers: { 'content-type': 'application/json; charset=utf-8' } })
+
+async function generateToken({ accountId, secret, issuer = undefined, scope = undefined, expirationTTL = undefined }) {
+  let signJwt = new SignJWT({ accountId, scope })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setJti(nanoid())
+    .setIssuedAt()
+  if (issuer) signJwt = signJwt.setIssuer(issuer)
+  if (expirationTTL) signJwt = signJwt.setExpirationTime(expirationTTL)
+  return await signJwt.sign(new Uint8Array(await crypto.subtle.digest('SHA-512', new TextEncoder().encode(secret))))
+}
+
+async function verify({ token, secret, issuer = undefined }) {
+  const hash = await crypto.subtle.digest('SHA-512', new TextEncoder().encode(secret))
+  return await jwtVerify(token, new Uint8Array(hash), { issuer })
+}

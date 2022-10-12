@@ -1,0 +1,15 @@
+{
+  "module": "worker.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler publish",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "jose": "^4.10.0",
+    "nanoid": "^4.0.0"
+  },
+  "devDependencies": {
+    "wrangler": "^2.1.11"
+  }
+}
