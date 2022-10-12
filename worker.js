@@ -34,6 +34,7 @@ export default {
       const url = new URL(req.url)
       const query = Object.fromEntries(url.searchParams)
       if (url.pathname === "/generate") {
+        let apikey = getAPIKey(req, query)
         if (!query.accountId && apikey) {
           const { profile, profile: { id } } = await env.APIKEYS.fetch(new Request('https://*/?apikey=' + apikey)).then(res => res.json())
           delete profile.id
