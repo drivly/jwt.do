@@ -47,11 +47,11 @@ const json = (obj, status) => new Response(JSON.stringify(obj, null, 2), { heade
 /**
  * Generates a JWT
  * @param {Object} query 
- * @param {*} query.accountId 
- * @param {string} query.secret 
- * @param {string|undefined} query.issuer 
- * @param {string|undefined} query.scope 
- * @param {string|number} query.expirationTTL The JWT expiration timestamp as a number or a timespan string
+ * @param {*} query.accountId The unique identifier for the account
+ * @param {string} query.secret The secret used to encode and verify the JWT
+ * @param {string|undefined} query.issuer The identity of the JWT issuer
+ * @param {string|undefined} query.scope Permissions scopes granted by the JWT
+ * @param {string|number|undefined} query.expirationTTL The JWT expiration timestamp as a number or a timespan string
  * @returns A JWT generated from the query
  * @throws The JWT could not be generated from the query
  */
@@ -69,7 +69,7 @@ async function generate({ accountId, secret, issuer = undefined, scope = undefin
  * Verifies a JWT
  * @param {Object} query
  * @param {string} query.token The JWT to be verified
- * @param {string} query.secret The secret used to verify the JWT
+ * @param {string} query.secret The secret used to encode and verify the JWT
  * @param {string|undefined} query.issuer The issuer of the JWT
  * @returns The decoded payload and header
  * @throws The JWT is not valid
