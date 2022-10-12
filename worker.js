@@ -32,7 +32,7 @@ export default {
   fetch: async (req, env) => {
     try {
       const url = new URL(req.url)
-      const query = Object.fromEntries(url.searchParams)
+      let query = Object.fromEntries(url.searchParams)
       if (url.pathname === "/generate") {
         let apikey = getAPIKey(req, query)
         if (!query.accountId && apikey) {
