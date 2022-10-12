@@ -33,8 +33,15 @@ export default {
     try {
       const url = new URL(req.url)
       const query = Object.fromEntries(url.searchParams)
-      if (url.pathname === "/generate") return json({ api, token: await generate({ apikey: getAPIKey(req, query), ...query }) })
-      else if (url.pathname === "/verify") return json({ api, data: await verify(query) })
+      if (url.pathname === "/generate") {
+        if (!query.accountId && apikey) {
+          const { profile, profile: { id } } = await env.APIKEYS.fetch(new Request('https://*/?apikey=' + apikey)).then(res => res.json())
+          delete profile.id
+          query.accountId = id
+          query = { ...profile, ...query }
+        }
+        return json({ api, token: await generate(query) })
+      } else if (url.pathname === "/verify") return json({ api, data: await verify(query) })
       else return json({ api, gettingStarted, examples })
     } catch (error) {
       return json({ api, error }, 400)
@@ -59,7 +66,6 @@ function getAPIKey(req, query) {
  * @param {Object} query 
  * @param {*} query.accountId The unique identifier for the account
  * @param {string|undefined} query.secret The secret used to encode and verify the JWT
- * @param {string|undefined} query.apikey The API key used to determine the accountId and claims
  * @param {string|undefined} query.issuer The identity of the JWT issuer
  * @param {string|undefined} query.scope Permissions scopes granted by the JWT
  * @param {string|number|undefined} query.expirationTTL The JWT expiration timestamp as a number or a timespan string
@@ -67,13 +73,7 @@ function getAPIKey(req, query) {
  * @returns A JWT generated from the query
  * @throws The JWT could not be generated from the query
  */
-async function generate({ accountId, apikey, secret, issuer, scope, expirationTTL, ...claims }) {
-  if (!accountId && apikey) {
-    const { profile, profile: { id } } = await env.APIKEYS.fetch(new Request('https://*/?apikey=' + apikey)).then(res => res.json())
-    delete profile.id
-    accountId = id
-    claims = { ...profile, ...claims }
-  }
+async function generate({ accountId, secret, issuer, scope, expirationTTL, ...claims }) {
   let signJwt = new SignJWT({ accountId, scope, ...claims })
     .setProtectedHeader({ alg: 'HS256' })
     .setJti(nanoid())
