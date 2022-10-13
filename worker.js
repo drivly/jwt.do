@@ -32,17 +32,12 @@ export default {
   fetch: async (req, env) => {
     try {
       const url = new URL(req.url)
-      let query = Object.fromEntries(url.searchParams)
-      if (url.pathname === "/generate") {
-        let apikey = getAPIKey(req, query)
-        if (!query.accountId && apikey) {
-          const { profile, profile: { id } } = await env.APIKEYS.fetch(new Request('https://apikeys.do/?apikey=' + apikey)).then(res => res.json())
-          delete profile.id
-          query.accountId = id
-          query = { ...profile, ...query }
-        }
-        return json({ api, token: await generate(query) })
-      } else if (url.pathname === "/verify") return json({ api, data: await verify(query) })
+      const query = Object.fromEntries(url.searchParams)
+      const apikey = !query.accountId && extractKey(req, query)
+      if (apikey) query = { ...query, ...(await extractKeyClaims(env, apikey)) }
+      else if (!query.accountId) query = { ...query, ...(await extractCookieClaims(req)) }
+      if (url.pathname === "/generate") return json({ api, token: await generate(query) })
+      else if (url.pathname === "/verify") return json({ api, data: await verify(query) })
       else return json({ api, gettingStarted, examples })
     } catch (error) {
       return json({ api, error }, 400)
@@ -52,7 +47,7 @@ export default {
 
 const json = (obj, status) => new Response(JSON.stringify(obj, null, 2), { headers: { 'content-type': 'application/json; charset=utf-8' }, status })
 
-function getAPIKey(req, query) {
+function extractKey(req, query) {
   const apikey = query.apikey
   if (apikey) {
     delete query.apikey
@@ -60,6 +55,31 @@ function getAPIKey(req, query) {
   }
   const auth = req.headers.get('authorization')?.split(' ')
   return req.headers.get('x-api-key') || auth?.[1] || auth?.[0]
+}
+
+async function extractKeyClaims(env, apikey) {
+  const { profile, profile: { id: accountId } } = await env.APIKEYS.fetch(new Request('https://apikeys.do/?apikey=' + apikey)).then(res => res.json())
+  delete profile.id
+  return { accountId, secret: env.JWT_SECRET, ...profile }
+}
+
+async function extractCookieClaims(req) {
+  const url = new URL(req.url)
+  const { hostname } = url
+  const domain = hostname.replace(/.*\.([^.]+.[^.]+)$/, '$1')
+  const secret = env.JWT_SECRET + domain
+  const cookie = req.headers.get('cookie')
+  const cookies = cookie && Object.fromEntries(cookie.split(';').map(c => c.trim().split('=')))
+  const token = cookies['__Secure-worker.auth.providers-token']
+  if (!token) return
+  try {
+    const jwt = await verify({ token, secret, issuer: domain })
+    const { profile, profile: { id: accountId } } = jwt.payload
+    delete profile.id
+    return { accountId, secret, ...profile }
+  } catch (error) {
+    console.error({ error })
+  }
 }
 
 /**
