@@ -73,8 +73,9 @@ async function extractCookieClaims(req, env, query) {
   const secret = env.JWT_SECRET + domain
   const cookie = req.headers.get('cookie')
   const cookies = cookie && Object.fromEntries(cookie.split(';').map(c => c.trim().split('=')))
-  const token = query.token || cookies['__Secure-worker.auth.providers-token']
-  if (query.token && url.pathname !== '/verify') delete query.token
+  const queryToken = url.pathname !== '/verify' && query.token
+  const token = queryToken || cookies['__Secure-worker.auth.providers-token']
+  if (queryToken) delete query.token
   if (!token) return
   try {
     const jwt = await verify({ token, secret, issuer: domain })
