@@ -64,7 +64,7 @@ function extractKey(req, query) {
 async function extractKeyClaims(req, env, apikey) {
   const domain = extractDomain(req)
   const { profile } = await env.APIKEYS.fetch(new Request('https://apikeys.do/?apikey=' + apikey)).then(res => res.json())
-  return { profile, claims: { accountId, secret: env.JWT_SECRET, ...profile, issuer: domain } }
+  return { profile, claims: { secret: env.JWT_SECRET, ...profile, issuer: domain } }
 }
 
 async function extractCookieClaims(req, env, query) {
@@ -78,7 +78,7 @@ async function extractCookieClaims(req, env, query) {
   try {
     const jwt = await verify({ token, secret, issuer: domain })
     const { profile } = jwt.payload
-    return { profile, claims: { accountId, secret, ...profile, issuer: domain } }
+    return { profile, claims: { secret, ...profile, issuer: domain } }
   } catch (error) {
     console.error({ error })
   }
