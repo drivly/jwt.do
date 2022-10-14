@@ -32,7 +32,7 @@ export default {
   fetch: async (req, env) => {
     try {
       const url = new URL(req.url)
-      const query = Object.fromEntries(url.searchParams)
+      let query = Object.fromEntries(url.searchParams)
       const apikey = !query.accountId && extractKey(req, query)
       if (apikey) query = { ...query, ...(await extractKeyClaims(env, apikey)) }
       else if (!query.accountId) query = { ...query, ...(await extractCookieClaims(req)) }
