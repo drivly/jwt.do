@@ -34,9 +34,9 @@ export default {
     try {
       const url = new URL(req.url)
       let query = Object.fromEntries(url.searchParams)
-      const apikey = !query.id && extractKey(req, query)
+      const apikey = extractKey(req, query)
       let { claims, profile } = apikey && await extractKeyClaims(req, env, apikey) ||
-        !query.id && await extractCookieClaims(req, env, query) ||
+        await extractCookieClaims(req, env, query) ||
         { claims: {} }
       query = { ...query, ...claims }
       if (profile) user = { authenticated: true, ...profile }
