@@ -36,7 +36,7 @@ export default {
       let query = Object.fromEntries(url.searchParams)
       const apikey = !query.id && extractKey(req, query)
       let { claims, profile } = apikey && await extractKeyClaims(req, env, apikey) ||
-        !query.id && await extractCookieClaims(req, env) ||
+        !query.id && await extractCookieClaims(req, env, query) ||
         { claims: {} }
       query = { ...query, ...claims }
       if (profile) user = { authenticated: true, ...profile }
@@ -67,16 +67,17 @@ async function extractKeyClaims(req, env, apikey) {
   return { profile, claims: { accountId, secret: env.JWT_SECRET, ...profile, issuer: domain } }
 }
 
-async function extractCookieClaims(req, env) {
+async function extractCookieClaims(req, env, query) {
   const domain = extractDomain(req)
   const secret = env.JWT_SECRET + domain
   const cookie = req.headers.get('cookie')
   const cookies = cookie && Object.fromEntries(cookie.split(';').map(c => c.trim().split('=')))
-  const token = cookies['__Secure-worker.auth.providers-token']
+  const token = query.token || cookies['__Secure-worker.auth.providers-token']
+  if (query.token) delete query.token
   if (!token) return
   try {
     const jwt = await verify({ token, secret, issuer: domain })
-    const { profile, } = jwt.payload
+    const { profile } = jwt.payload
     return { profile, claims: { accountId, secret, ...profile, issuer: domain } }
   } catch (error) {
     console.error({ error })
