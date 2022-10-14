@@ -35,9 +35,9 @@ export default {
       const url = new URL(req.url)
       let query = Object.fromEntries(url.searchParams)
       const apikey = !query.id && extractKey(req, query)
-      let { claims, profile } = apikey ? await extractKeyClaims(env, apikey)
-        : !query.id ? await extractCookieClaims(req, env)
-          : { claims: {} }
+      let { claims, profile } = apikey && await extractKeyClaims(req, env, apikey) ||
+        !query.id && await extractCookieClaims(req, env) ||
+        { claims: {} }
       query = { ...query, ...claims }
       if (profile) user = { authenticated: true, ...profile }
       if (url.pathname === "/generate") return json({ api, token: await generate(query), user })
@@ -61,15 +61,14 @@ function extractKey(req, query) {
   return req.headers.get('x-api-key') || auth?.[1] || auth?.[0]
 }
 
-async function extractKeyClaims(env, apikey) {
+async function extractKeyClaims(req, env, apikey) {
+  const domain = extractDomain(req)
   const { profile } = await env.APIKEYS.fetch(new Request('https://apikeys.do/?apikey=' + apikey)).then(res => res.json())
-  return { profile, claims: { accountId, secret: env.JWT_SECRET, ...profile } }
+  return { profile, claims: { accountId, secret: env.JWT_SECRET, ...profile, issuer: domain } }
 }
 
 async function extractCookieClaims(req, env) {
-  const url = new URL(req.url)
-  const { hostname } = url
-  const domain = hostname.replace(/.*\.([^.]+.[^.]+)$/, '$1')
+  const domain = extractDomain(req)
   const secret = env.JWT_SECRET + domain
   const cookie = req.headers.get('cookie')
   const cookies = cookie && Object.fromEntries(cookie.split(';').map(c => c.trim().split('=')))
@@ -78,10 +77,16 @@ async function extractCookieClaims(req, env) {
   try {
     const jwt = await verify({ token, secret, issuer: domain })
     const { profile, } = jwt.payload
-    return { profile, claims: { accountId, secret, ...profile } }
+    return { profile, claims: { accountId, secret, ...profile, issuer: domain } }
   } catch (error) {
     console.error({ error })
   }
+}
+
+function extractDomain(req) {
+  const url = new URL(req.url)
+  const { hostname } = url
+  return hostname.replace(/.*\.([^.]+.[^.]+)$/, '$1')
 }
 
 /**
