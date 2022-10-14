@@ -24,7 +24,7 @@ export const gettingStarted = [
 ]
 
 export const examples = {
-  generate: 'https://jwt.do/generate?accountId=1234&secret=secret&issuer=jwt.do&scope=user:read&expirationTTL=2h',
+  generate: 'https://jwt.do/generate?id=1234&secret=secret&issuer=jwt.do&scope=user:read&expirationTTL=2h',
   verify: 'https://jwt.do/verify?token=:token&secret=secret&issuer=jwt.do',
 }
 
@@ -34,23 +34,12 @@ export default {
     try {
       const url = new URL(req.url)
       let query = Object.fromEntries(url.searchParams)
-      const apikey = !query.accountId && extractKey(req, query)
-      if (apikey) {
-        let { claims, profile } = await extractKeyClaims(env, apikey)
-        query = { ...query, ...claims }
-        if (profile) {
-          user.authenticated = true
-          user.profile = profile
-        }
-      }
-      else if (!query.accountId) {
-        let { claims, profile } = await extractCookieClaims(req, env)
-        query = { ...query, ...claims }
-        if (profile) {
-          user.authenticated = true
-          user.profile = profile
-        }
-      }
+      const apikey = !query.id && extractKey(req, query)
+      let { claims, profile } = apikey ? await extractKeyClaims(env, apikey)
+        : !query.id ? await extractCookieClaims(req, env)
+          : { claims: {} }
+      query = { ...query, ...claims }
+      if (profile) user = { authenticated: true, ...profile }
       if (url.pathname === "/generate") return json({ api, token: await generate(query), user })
       else if (url.pathname === "/verify") return json({ api, data: await verify(query), user })
       else return json({ api, gettingStarted, examples, user })
@@ -73,8 +62,7 @@ function extractKey(req, query) {
 }
 
 async function extractKeyClaims(env, apikey) {
-  const { profile, profile: { id: accountId } } = await env.APIKEYS.fetch(new Request('https://apikeys.do/?apikey=' + apikey)).then(res => res.json())
-  delete profile.id
+  const { profile } = await env.APIKEYS.fetch(new Request('https://apikeys.do/?apikey=' + apikey)).then(res => res.json())
   return { profile, claims: { accountId, secret: env.JWT_SECRET, ...profile } }
 }
 
@@ -89,8 +77,7 @@ async function extractCookieClaims(req, env) {
   if (!token) return
   try {
     const jwt = await verify({ token, secret, issuer: domain })
-    const { profile, profile: { id: accountId } } = jwt.payload
-    delete profile.id
+    const { profile, } = jwt.payload
     return { profile, claims: { accountId, secret, ...profile } }
   } catch (error) {
     console.error({ error })
@@ -100,7 +87,7 @@ async function extractCookieClaims(req, env) {
 /**
  * Generates a JWT
  * @param {Object} query 
- * @param {*} query.accountId The unique identifier for the account
+ * @param {*} query.id The unique identifier for the account
  * @param {string|undefined} query.secret The secret used to encode and verify the JWT
  * @param {string|undefined} query.issuer The identity of the JWT issuer
  * @param {string|undefined} query.scope Permissions scopes granted by the JWT
@@ -109,8 +96,8 @@ async function extractCookieClaims(req, env) {
  * @returns A JWT generated from the query
  * @throws The JWT could not be generated from the query
  */
-async function generate({ accountId, secret, issuer, scope, expirationTTL, ...claims }) {
-  let signJwt = new SignJWT({ accountId, scope, ...claims })
+async function generate({ id, secret, issuer, scope, expirationTTL, ...claims }) {
+  let signJwt = new SignJWT({ id, scope, ...claims })
     .setProtectedHeader({ alg: 'HS256' })
     .setJti(nanoid())
     .setIssuedAt()
