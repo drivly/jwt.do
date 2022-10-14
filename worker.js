@@ -74,7 +74,7 @@ async function extractCookieClaims(req, env, query) {
   const cookie = req.headers.get('cookie')
   const cookies = cookie && Object.fromEntries(cookie.split(';').map(c => c.trim().split('=')))
   const queryToken = url.pathname !== '/verify' && query.token
-  const token = queryToken || cookies['__Secure-worker.auth.providers-token']
+  const token = queryToken || cookies?.['__Secure-worker.auth.providers-token']
   if (queryToken) delete query.token
   if (!token) return
   try {
