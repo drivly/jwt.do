@@ -41,7 +41,7 @@ export default {
       query = { ...query, ...claims }
       if (profile) user = { authenticated: true, ...profile }
       if (url.pathname === "/generate") return json({ api, token: await generate(query), user })
-      else if (url.pathname === "/verify") return json({ api, data: await verify(query), user })
+      else if (url.pathname === "/verify") return json({ api, jwt: await verify(query), user })
       else return json({ api, gettingStarted, examples, user })
     } catch (error) {
       return json({ api, error, user }, 400)
