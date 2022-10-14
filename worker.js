@@ -62,18 +62,19 @@ function extractKey(req, query) {
 }
 
 async function extractKeyClaims(req, env, apikey) {
-  const domain = extractDomain(req)
+  const domain = extractDomain(new URL(req.url))
   const { profile } = await env.APIKEYS.fetch(new Request('https://apikeys.do/?apikey=' + apikey)).then(res => res.json())
   return { profile, claims: { secret: env.JWT_SECRET, ...profile, issuer: domain } }
 }
 
 async function extractCookieClaims(req, env, query) {
-  const domain = extractDomain(req)
+  const url = new URL(req.url)
+  const domain = extractDomain(url)
   const secret = env.JWT_SECRET + domain
   const cookie = req.headers.get('cookie')
   const cookies = cookie && Object.fromEntries(cookie.split(';').map(c => c.trim().split('=')))
   const token = query.token || cookies['__Secure-worker.auth.providers-token']
-  if (query.token) delete query.token
+  if (query.token && url.pathname !== '/verify') delete query.token
   if (!token) return
   try {
     const jwt = await verify({ token, secret, issuer: domain })
@@ -84,8 +85,7 @@ async function extractCookieClaims(req, env, query) {
   }
 }
 
-function extractDomain(req) {
-  const url = new URL(req.url)
+function extractDomain(url) {
   const { hostname } = url
   return hostname.replace(/.*\.([^.]+.[^.]+)$/, '$1')
 }
@@ -102,12 +102,13 @@ function extractDomain(req) {
  * @returns A JWT generated from the query
  * @throws The JWT could not be generated from the query
  */
-async function generate({ id, secret, issuer, scope, expirationTTL, ...claims }) {
+async function generate({ id, secret, issuer, scope, expirationTTL, audience, ...claims }) {
   let signJwt = new SignJWT({ profile: { id, ...claims }, scope })
     .setProtectedHeader({ alg: 'HS256' })
     .setJti(nanoid())
     .setIssuedAt()
   if (issuer) signJwt = signJwt.setIssuer(issuer)
+  if (audience) signJwt = signJwt.setAudience(audience)
   if (expirationTTL) signJwt = signJwt.setExpirationTime(expirationTTL)
   return await signJwt.sign(new Uint8Array(await crypto.subtle.digest('SHA-512', new TextEncoder().encode(secret))))
 }
