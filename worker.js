@@ -51,11 +51,11 @@ export default {
           user.profile = profile
         }
       }
-      if (url.pathname === "/generate") return json({ api, token: await generate(query) })
-      else if (url.pathname === "/verify") return json({ api, data: await verify(query) })
-      else return json({ api, gettingStarted, examples })
-    } catch (error) {
-      return json({ api, error }, 400)
+      if (url.pathname === "/generate") return json({ api, token: await generate(query), user })
+      else if (url.pathname === "/verify") return json({ api, data: await verify(query), user })
+      else return json({ api, gettingStarted, examples, user })
+    } catch ({ error }) {
+      return json({ api, error, user }, 400)
     }
   }
 }
