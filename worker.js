@@ -102,7 +102,7 @@ function extractDomain(req) {
  * @throws The JWT could not be generated from the query
  */
 async function generate({ id, secret, issuer, scope, expirationTTL, ...claims }) {
-  let signJwt = new SignJWT({ id, scope, ...claims })
+  let signJwt = new SignJWT({ profile: { id, ...claims }, scope })
     .setProtectedHeader({ alg: 'HS256' })
     .setJti(nanoid())
     .setIssuedAt()
