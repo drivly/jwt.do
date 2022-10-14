@@ -35,7 +35,7 @@ export default {
       let query = Object.fromEntries(url.searchParams)
       const apikey = !query.accountId && extractKey(req, query)
       if (apikey) query = { ...query, ...(await extractKeyClaims(env, apikey)) }
-      else if (!query.accountId) query = { ...query, ...(await extractCookieClaims(req)) }
+      else if (!query.accountId) query = { ...query, ...(await extractCookieClaims(req, env)) }
       if (url.pathname === "/generate") return json({ api, token: await generate(query) })
       else if (url.pathname === "/verify") return json({ api, data: await verify(query) })
       else return json({ api, gettingStarted, examples })
@@ -63,7 +63,7 @@ async function extractKeyClaims(env, apikey) {
   return { accountId, secret: env.JWT_SECRET, ...profile }
 }
 
-async function extractCookieClaims(req) {
+async function extractCookieClaims(req, env) {
   const url = new URL(req.url)
   const { hostname } = url
   const domain = hostname.replace(/.*\.([^.]+.[^.]+)$/, '$1')
