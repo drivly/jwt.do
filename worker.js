@@ -30,7 +30,7 @@ export const examples = {
 
 export default {
   fetch: async (req, env) => {
-    const user = { authenticated: false }
+    let user = { authenticated: false }
     try {
       const url = new URL(req.url)
       let query = Object.fromEntries(url.searchParams)
