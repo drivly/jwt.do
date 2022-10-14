@@ -30,11 +30,11 @@ export const examples = {
 
 export default {
   fetch: async (req, env) => {
+    const user = { authenticated: false }
     try {
       const url = new URL(req.url)
       let query = Object.fromEntries(url.searchParams)
       const apikey = !query.accountId && extractKey(req, query)
-      const user = { authenticated: false }
       if (apikey) {
         let { claims, profile } = await extractKeyClaims(env, apikey)
         query = { ...query, ...claims }
@@ -54,7 +54,7 @@ export default {
       if (url.pathname === "/generate") return json({ api, token: await generate(query), user })
       else if (url.pathname === "/verify") return json({ api, data: await verify(query), user })
       else return json({ api, gettingStarted, examples, user })
-    } catch ({ error }) {
+    } catch (error) {
       return json({ api, error, user }, 400)
     }
   }
