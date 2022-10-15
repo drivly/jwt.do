@@ -109,7 +109,7 @@ async function generate({ secret, issuer, expirationTTL, audience, ...claims }) 
     .setIssuedAt()
   if (issuer) signJwt = signJwt.setIssuer(issuer)
   if (audience) signJwt = signJwt.setAudience(audience)
-  if (expirationTTL) signJwt = signJwt.setExpirationTime(expirationTTL)
+  if (expirationTTL) signJwt = signJwt.setExpirationTime(expirationTTL.match(/^\d+$/) ? parseInt(expirationTTL) : expirationTTL)
   return await signJwt.sign(new Uint8Array(await crypto.subtle.digest('SHA-512', new TextEncoder().encode(secret))))
 }
 
