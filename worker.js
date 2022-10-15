@@ -97,14 +97,13 @@ function extractDomain(url) {
  * @param {Object} query 
  * @param {string|undefined} query.secret The secret used to encode and verify the JWT
  * @param {string|undefined} query.issuer The identity of the JWT issuer
- * @param {string|undefined} query.scope Permissions scopes granted by the JWT
  * @param {string|number|undefined} query.expirationTTL The JWT expiration timestamp as a number or a timespan string
  * @param {Object|undefined} query.claims Additional claims to include in the JWT payload
  * @returns A JWT generated from the query
  * @throws The JWT could not be generated from the query
  */
-async function generate({ secret, issuer, scope, expirationTTL, audience, ...claims }) {
-  let signJwt = new SignJWT({ ...claims, scope })
+async function generate({ secret, issuer, expirationTTL, audience, ...claims }) {
+  let signJwt = new SignJWT({ ...claims })
     .setProtectedHeader({ alg: 'HS256' })
     .setJti(nanoid())
     .setIssuedAt()
