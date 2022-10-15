@@ -1,5 +1,6 @@
 import { jwtVerify, SignJWT } from 'jose'
 import { nanoid } from 'nanoid'
+import qs from 'qs'
 
 export const api = {
   icon: '🚀',
@@ -33,7 +34,7 @@ export default {
     let user = { authenticated: false }
     try {
       const url = new URL(req.url)
-      let query = Object.fromEntries(url.searchParams)
+      let query = url.search && qs.parse(url.search.substring(1)) || {}
       const apikey = extractKey(req, query)
       let { claims, profile } = apikey && await extractKeyClaims(req, env, apikey) ||
         await extractCookieClaims(req, env, query) ||
@@ -64,7 +65,7 @@ function extractKey(req, query) {
 async function extractKeyClaims(req, env, apikey) {
   const domain = extractDomain(new URL(req.url))
   const { profile } = await env.APIKEYS.fetch(new Request('https://apikeys.do/?apikey=' + apikey)).then(res => res.json())
-  return { profile, claims: { secret: env.JWT_SECRET, ...profile, issuer: domain } }
+  return { profile, claims: { secret: env.JWT_SECRET, profile, issuer: domain } }
 }
 
 async function extractCookieClaims(req, env, query) {
@@ -80,7 +81,7 @@ async function extractCookieClaims(req, env, query) {
   try {
     const jwt = await verify({ token, secret, issuer: domain })
     const { profile } = jwt.payload
-    return { profile, claims: { secret, ...profile, issuer: domain } }
+    return { profile, claims: { secret, profile, issuer: domain } }
   } catch (error) {
     console.error({ error })
   }
@@ -94,7 +95,6 @@ function extractDomain(url) {
 /**
  * Generates a JWT
  * @param {Object} query 
- * @param {*} query.id The unique identifier for the account
  * @param {string|undefined} query.secret The secret used to encode and verify the JWT
  * @param {string|undefined} query.issuer The identity of the JWT issuer
  * @param {string|undefined} query.scope Permissions scopes granted by the JWT
@@ -103,8 +103,8 @@ function extractDomain(url) {
  * @returns A JWT generated from the query
  * @throws The JWT could not be generated from the query
  */
-async function generate({ id, secret, issuer, scope, expirationTTL, audience, ...claims }) {
-  let signJwt = new SignJWT({ profile: { id, ...claims }, scope })
+async function generate({ secret, issuer, scope, expirationTTL, audience, ...claims }) {
+  let signJwt = new SignJWT({ ...claims, scope })
     .setProtectedHeader({ alg: 'HS256' })
     .setJti(nanoid())
     .setIssuedAt()
