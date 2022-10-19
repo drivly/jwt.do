@@ -25,7 +25,7 @@ export const gettingStarted = [
 ]
 
 export const examples = {
-  generate: 'https://jwt.do/generate?id=1234&secret=secret&issuer=jwt.do&scope=user:read&expirationTTL=2h',
+  generate: 'https://jwt.do/generate?profile[id]=1234&secret=secret&issuer=jwt.do&scope=user:read&expirationTTL=2h',
   verify: 'https://jwt.do/verify?token=:token&secret=secret&issuer=jwt.do',
 }
 
@@ -64,6 +64,7 @@ function extractKey(req, query) {
 
 async function extractKeyClaims(req, env, apikey) {
   const domain = extractDomain(new URL(req.url))
+  if (domain === 'apikeys.do') return
   const { profile } = await env.APIKEYS.fetch(new Request('/api?apikey=' + apikey, req.url)).then(res => res.json())
   return profile && { profile, claims: { secret: env.JWT_SECRET + domain, profile, issuer: domain } }
 }
