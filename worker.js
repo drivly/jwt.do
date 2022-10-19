@@ -108,7 +108,7 @@ async function generate({ secret, issuer, expirationTTL, audience, ...claims }) 
   if (issuer) signJwt = signJwt.setIssuer(issuer)
   if (audience) signJwt = signJwt.setAudience(audience)
   if (expirationTTL) signJwt = signJwt.setExpirationTime(expirationTTL.match(/^\d+$/) ? parseInt(expirationTTL) : expirationTTL)
-  return await signJwt.sign(new Uint8Array(await crypto.subtle.digest('SHA-512', new TextEncoder().encode(secret.replace(' ', '+')))))
+  return await signJwt.sign(new Uint8Array(await crypto.subtle.digest('SHA-512', new TextEncoder().encode(secret.replaceAll(' ', '+')))))
 }
 
 /**
@@ -121,6 +121,6 @@ async function generate({ secret, issuer, expirationTTL, audience, ...claims }) 
  * @throws The JWT is not valid
  */
 async function verify({ token, secret, issuer }) {
-  const hash = await crypto.subtle.digest('SHA-512', new TextEncoder().encode(secret.replace(' ', '+')))
+  const hash = await crypto.subtle.digest('SHA-512', new TextEncoder().encode(secret.replaceAll(' ', '+')))
   return await jwtVerify(token, new Uint8Array(hash), { issuer })
 }
