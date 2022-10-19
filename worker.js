@@ -37,7 +37,7 @@ export default {
       let query = url.search && qs.parse(url.search.substring(1)) || {}
       const apikey = extractKey(req, query)
       let { claims, profile } = apikey && await extractKeyClaims(req, env, apikey) ||
-        await extractCookieClaims(req, env, query) ||
+        await extractCookieClaims(req, env) ||
         { claims: {} }
       query = { ...query, ...claims }
       if (profile) user = { authenticated: true, ...profile }
@@ -64,20 +64,17 @@ function extractKey(req, query) {
 
 async function extractKeyClaims(req, env, apikey) {
   const domain = extractDomain(new URL(req.url))
-  if (domain === 'apikeys.do') return
   const { profile } = await env.APIKEYS.fetch(new Request('/api?apikey=' + apikey, req.url)).then(res => res.json())
   return profile && { profile, claims: { secret: env.JWT_SECRET + domain, profile, issuer: domain } }
 }
 
-async function extractCookieClaims(req, env, query) {
+async function extractCookieClaims(req, env) {
   const url = new URL(req.url)
   const domain = extractDomain(url)
   const secret = env.JWT_SECRET + domain
   const cookie = req.headers.get('cookie')
   const cookies = cookie && Object.fromEntries(cookie.split(';').map(c => c.trim().split('=')))
-  const queryToken = url.pathname !== '/verify' && query.token
-  const token = queryToken || cookies?.['__Secure-worker.auth.providers-token']
-  if (queryToken) delete query.token
+  const token = cookies?.['__Secure-worker.auth.providers-token']
   if (!token) return
   try {
     const jwt = await verify({ token, secret, issuer: domain })
