@@ -64,6 +64,7 @@ function extractKey(req, query) {
 
 async function extractKeyClaims(req, env, apikey) {
   const domain = extractDomain(new URL(req.url))
+  if (domain === 'apikeys.do') return
   const { profile } = await env.APIKEYS.fetch(new Request('/api?apikey=' + apikey, req.url)).then(res => res.json())
   return profile && { profile, claims: { secret: env.JWT_SECRET + domain, profile, issuer: domain } }
 }
