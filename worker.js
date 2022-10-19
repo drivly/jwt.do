@@ -39,7 +39,7 @@ export default {
       let { claims, profile } = apikey && await extractKeyClaims(req, env, apikey) ||
         await extractCookieClaims(req, env) ||
         { claims: {} }
-      query = { ...query, ...claims }
+      query = { ...claims, ...query }
       if (profile) user = { authenticated: true, ...profile }
       if (url.pathname === "/generate") return json({ api, token: await generate(query), user })
       else if (url.pathname === "/verify") return json({ api, jwt: await verify(query), user })
@@ -86,8 +86,7 @@ async function extractCookieClaims(req, env) {
   }
 }
 
-function extractDomain(url) {
-  const { hostname } = url
+function extractDomain({ hostname }) {
   return hostname.replace(/.*\.([^.]+.[^.]+)$/, '$1')
 }
 
