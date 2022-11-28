@@ -7,3 +7,6 @@ compatibility_date = "2022-09-23"
 services = [
   { binding = "APIKEYS", service = "apikeys-do", environment = "production" }
 ]
+
+[vars]
+ADMIN_IDS = "112662125,4130910,83304860,837697,87502003"
