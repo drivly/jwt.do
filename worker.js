@@ -19,10 +19,7 @@ export const api = {
   repo: 'https://github.com/drivly/jwt.do',
 }
 
-export const gettingStarted = [
-  `If you don't already have a JSON Viewer Browser Extension, get that first:`,
-  `https://extensions.do`,
-]
+export const gettingStarted = [`If you don't already have a JSON Viewer Browser Extension, get that first:`, `https://extensions.do`]
 
 export const examples = {
   generate: 'https://jwt.do/generate?profile[id]=1234&secret=secret&issuer=jwt.do&scope=user:read&expirationTTL=2h',
@@ -34,20 +31,25 @@ export default {
     let user = { authenticated: false }
     try {
       const url = new URL(req.url)
-      let query = url.search && qs.parse(url.search.substring(1)) || {}
+      let query = (url.search && qs.parse(url.search.substring(1))) || {}
       const apikey = extractKey(req, query)
-      let { claims, profile } = apikey && await extractKeyClaims(req, env, apikey) ||
-        await extractCookieClaims(req, env) ||
-        { claims: {} }
+      let claims = (apikey && (await extractKeyClaims(req, env, apikey))) || (await extractCookieClaims(req, env)) || {}
       query = { ...query, ...claims }
-      if (profile) user = { authenticated: true, ...profile }
-      if (url.pathname === "/generate") return json({ api, token: await generate(query), user })
-      else if (url.pathname === "/verify") return json({ api, jwt: await verify(query), user })
+      if (query.profile) {
+        user = { authenticated: true, ...query.profile }
+      }
+      if (env.ADMIN_IDS?.split(',')?.includes(user.id)) {
+        query.role = 'admin'
+      } else if (query.role === 'admin') {
+        query.role = 'user'
+      }
+      if (url.pathname === '/generate') return json({ api, token: await generate(query), user })
+      else if (url.pathname === '/verify') return json({ api, jwt: await verify(query), user })
       else return json({ api, gettingStarted, examples, user })
     } catch (error) {
       return json({ api, error, user }, 400)
     }
-  }
+  },
 }
 
 const json = (obj, status) => new Response(JSON.stringify(obj, null, 2), { headers: { 'content-type': 'application/json; charset=utf-8' }, status })
@@ -65,8 +67,8 @@ function extractKey(req, query) {
 async function extractKeyClaims(req, env, apikey) {
   const domain = extractDomain(new URL(req.url))
   if (domain === 'apikeys.do') return
-  const { profile } = await env.APIKEYS.fetch(new Request('/api?apikey=' + apikey, req.url)).then(res => res.json())
-  return profile && { profile, claims: { secret: env.JWT_SECRET + domain, profile, issuer: domain } }
+  const { profile } = await env.APIKEYS.fetch(new Request('/api?apikey=' + apikey, req.url)).then((res) => res.json())
+  return profile && { secret: env.JWT_SECRET + domain, profile, issuer: domain }
 }
 
 async function extractCookieClaims(req, env) {
@@ -74,13 +76,13 @@ async function extractCookieClaims(req, env) {
   const domain = extractDomain(url)
   const secret = env.JWT_SECRET + domain
   const cookie = req.headers.get('cookie')
-  const cookies = cookie && Object.fromEntries(cookie.split(';').map(c => c.trim().split('=')))
+  const cookies = cookie && Object.fromEntries(cookie.split(';').map((c) => c.trim().split('=')))
   const token = cookies?.['__Secure-worker.auth.providers-token']
   if (!token) return
   try {
     const jwt = await verify({ token, secret, issuer: domain })
     const { profile } = jwt.payload
-    return { profile, claims: { secret, profile, issuer: domain } }
+    return { secret, profile, issuer: domain }
   } catch (error) {
     console.error({ error })
   }
@@ -92,7 +94,7 @@ function extractDomain({ hostname }) {
 
 /**
  * Generates a JWT
- * @param {Object} query 
+ * @param {Object} query
  * @param {string|undefined} query.secret The secret used to encode and verify the JWT
  * @param {string|undefined} query.issuer The identity of the JWT issuer
  * @param {string|number|undefined} query.expirationTTL The JWT expiration timestamp as a number or a timespan string
@@ -101,10 +103,7 @@ function extractDomain({ hostname }) {
  * @throws The JWT could not be generated from the query
  */
 async function generate({ secret, issuer, expirationTTL, audience, ...claims }) {
-  let signJwt = new SignJWT({ ...claims })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setJti(nanoid())
-    .setIssuedAt()
+  let signJwt = new SignJWT({ ...claims }).setProtectedHeader({ alg: 'HS256' }).setJti(nanoid()).setIssuedAt()
   if (issuer) signJwt = signJwt.setIssuer(issuer)
   if (audience) signJwt = signJwt.setAudience(audience)
   if (expirationTTL) signJwt = signJwt.setExpirationTime(expirationTTL.match(/^\d+$/) ? parseInt(expirationTTL) : expirationTTL)
