@@ -36,12 +36,12 @@ export default {
       let claims = (apikey && (await extractKeyClaims(req, env, apikey))) || (await extractCookieClaims(req, env)) || {}
       query = { ...query, ...claims }
       if (query.profile) {
+        if (env.ADMIN_IDS?.split(',')?.includes(user.id)) {
+          query.profile.role = 'admin'
+        } else if (query.profile.role === 'admin') {
+          delete query.profile.role
+        }
         user = { authenticated: true, ...query.profile }
-      }
-      if (env.ADMIN_IDS?.split(',')?.includes(user.id)) {
-        query.role = 'admin'
-      } else if (query.role === 'admin') {
-        query.role = 'user'
       }
       if (url.pathname === '/generate') return json({ api, token: await generate(query), user })
       else if (url.pathname === '/verify') return json({ api, jwt: await verify(query), user })
