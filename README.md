@@ -1,56 +1,28 @@
 # JWT.do - JWT Token Generation & Verification API
 
-## Getting Started
-
-If you don't already have a browser extension to pretty-print JSON and make links clickable, start by installing that: <https://extensions.do>
-
-Then you interactively use the API at: <https://jwt.do/api>
+Explore the API at: <https://jwt.do/api>
 
 ```json
 {
   "api": {
     "icon": "🚀",
-    "name": "templates.do",
-    "description": "Cloudflare Worker Template",
-    "url": "https://templates.do/api",
-    "type": "https://apis.do/templates",
+    "name": "jwt.do",
+    "description": "JWT Token Generation & Verification API",
+    "url": "https://jwt.do/api",
+    "type": "https://apis.do/security",
     "endpoints": {
-      "listCategories": "https://templates.do/api",
-      "getCategory": "https://templates.do/:type"
+      "generate": "https://jwt.do/generate",
+      "verify": "https://jwt.do/verify"
     },
-    "site": "https://templates.do",
-    "login": "https://templates.do/login",
-    "signup": "https://templates.do/signup",
-    "subscribe": "https://templates.do/subscribe",
-    "repo": "https://github.com/drivly/templates.do"
+    "site": "https://jwt.do",
+    "login": "https://jwt.do/login",
+    "signup": "https://jwt.do/signup",
+    "subscribe": "https://jwt.do/subscribe",
+    "repo": "https://github.com/drivly/jwt.do"
   },
-  "gettingStarted": [
-    "If you don't already have a JSON Viewer Browser Extension, get that first:",
-    "https://extensions.do"
-  ],
   "examples": {
-    "listItems": "https://templates.do/worker"
-  },
-  "user": {
-    "authenticated": false,
-    "plan": "🛠 Build",
-    "browser": "Safari",
-    "os": "Mac OS",
-    "ip": "2606:54c0:76a0:1d18::e:fe",
-    "isp": "iCloud Private Relay",
-    "flag": "🇺🇸",
-    "zipcode": "94088",
-    "city": "Sunnyvale",
-    "metro": "San Francisco-Oak-San Jose",
-    "region": "California",
-    "country": "United States",
-    "continent": "North America",
-    "requestId": "751b42735f76e206-ORD",
-    "localTime": "9/28/2022, 1:55:20 AM",
-    "timezone": "America/Los_Angeles",
-    "edgeLocation": "Chicago",
-    "edgeDistanceMiles": 1833,
-    "recentInteractions": 10
+    "generate": "https://jwt.do/generate?profile[id]=1234&secret=secret&issuer=jwt.do&scope=user:read&expirationTTL=2h",
+    "verify": "https://jwt.do/verify?token=:token&secret=secret&issuer=jwt.do"
   }
 }
 ```
