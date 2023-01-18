@@ -89,7 +89,7 @@ async function extractCookieClaims(req, env) {
 }
 
 function extractDomain({ hostname }) {
-  return hostname.replace(/.*\.([^.]+.[^.]+)$/, '$1')
+  return hostname.replace(/.*?\.([^.]+\.[^.]+)$/, '$1')
 }
 
 /**
